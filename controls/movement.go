@@ -36,7 +36,10 @@ func UpdatePlayerMovement(player *entities.Player) {
 	if rl.IsKeyPressed(rl.KeyC) {
 		player.Jump()
 	}
-	player.Movement = vectorMovement
+
+	if !rl.IsMouseButtonDown(rl.MouseButtonRight) {
+		player.Move(vectorMovement)
+	}
 
 	diff := rl.Vector3Subtract(player.Position, player.Camera.Position)
 	yAngle := math.Atan2(float64(diff.Z), float64(diff.X)) + math.Pi/2.0

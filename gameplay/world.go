@@ -50,7 +50,7 @@ func (World *World) LoopGarbageDeletionEntities() {
 func (World *World) RenderEntities() {
 	if model == nil {
 		// rl.GenMeshCone(0.1, 1.5, 10)
-		m := rl.LoadModelFromMesh(rl.GenMeshCube(0.3, 1.5, 0.3))
+		m := rl.LoadModelFromMesh(rl.GenMeshCube(0.7, 0.7, 0.7))
 		model = &m
 	} else {
 		diff := rl.Vector3Subtract(World.MainPlayer.Camera.Target, World.MainPlayer.Position)
@@ -67,7 +67,7 @@ func (World *World) RenderEntities() {
 	rl.BeginMode3D(*World.MainPlayer.Camera)
 
 	// rl.DrawModel(*model, World.MainPlayer.Camera.Target, 1, rl.LightGray)
-	rl.DrawModelWires(*model, World.MainPlayer.AimPosition, 1, rl.Green)
+	rl.DrawModelWires(*model, World.MainPlayer.ForwardPosition, 1, rl.Green)
 	rl.DrawModelWires(*model, World.MainPlayer.Camera.Target, 1, rl.Red)
 
 	rl.DrawModelWires(World.MainPlayer.Model, World.MainPlayer.Position, 1, rl.Blue)

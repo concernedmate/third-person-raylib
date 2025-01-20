@@ -19,6 +19,7 @@ type Player struct {
 
 	JumpingSpeed     float32
 	VerticalMovement float32
+	FallingSpeed     float32
 
 	DashSpeed     float32
 	DashModifier  float32
@@ -54,8 +55,8 @@ func NewPlayer() Player {
 		Rotation:        rotation,
 		WalkingSpeed:    20.0,
 		StrafingSpeed:   10,
-		JumpingSpeed:    80,
-		DashSpeed:       160,
+		JumpingSpeed:    30,
+		DashSpeed:       30,
 		Camera:          &camera,
 		CameraSpeed:     100,
 	}
@@ -64,12 +65,13 @@ func NewPlayer() Player {
 func (Player *Player) ForwardDirection() rl.Vector3 {
 	return rl.Vector3Normalize(rl.Vector3Subtract(Player.ForwardPosition, Player.Position))
 }
-func (Player *Player) AimForwardDirection() rl.Vector3 {
-	return rl.Vector3Normalize(rl.Vector3Subtract(Player.Camera.Target, Player.AimPosition))
-}
 
 func (Player *Player) RightDirection() rl.Vector3 {
 	return rl.Vector3CrossProduct(Player.ForwardDirection(), rl.NewVector3(0, 1, 0))
+}
+
+func (Player *Player) AimForwardDirection() rl.Vector3 {
+	return rl.Vector3Normalize(rl.Vector3Subtract(Player.Camera.Target, Player.AimPosition))
 }
 
 // vector must be normalized,
@@ -96,7 +98,7 @@ func (Player *Player) Jump() {
 }
 
 func (Player *Player) Dash(direction rl.Vector3) {
-	if time.Since(Player.DashTimer).Milliseconds() < 500 {
+	if time.Since(Player.DashTimer).Milliseconds() < 300 {
 		return
 	}
 	if Player.DashModifier > 0 || Player.Position.Y > 2 {
@@ -107,18 +109,27 @@ func (Player *Player) Dash(direction rl.Vector3) {
 	Player.DashTimer = time.Now()
 }
 
+func (Player *Player) Move(direction rl.Vector3) {
+	if Player.Position.Y > 1 {
+		return
+	}
+	Player.Movement = direction
+}
+
 func (Player *Player) GravityAndPositionLoop() {
 	if Player.VerticalMovement > 0 {
 		Player.MoveByVector(rl.NewVector3(0, Player.VerticalMovement*rl.GetFrameTime(), 0), 1)
-		Player.VerticalMovement -= 100 * rl.GetFrameTime()
 	}
-	if Player.Position.Y > 2 {
+	if Player.Position.Y > 1 {
 		Player.MoveByVector(rl.NewVector3(0, Player.VerticalMovement*rl.GetFrameTime(), 0), 1)
-		Player.VerticalMovement -= 100 * rl.GetFrameTime()
+		Player.FallingSpeed = Player.FallingSpeed + 10*rl.GetFrameTime()
+		Player.VerticalMovement -= Player.FallingSpeed
+	} else {
+		Player.FallingSpeed = 0
 	}
 	if Player.DashModifier > 0 {
 		Player.MoveByVector(Player.DashDirection, Player.DashModifier)
-		Player.DashModifier -= Player.DashSpeed / Player.WalkingSpeed * rl.GetFrameTime() * 3
+		Player.DashModifier -= Player.DashSpeed / Player.WalkingSpeed * rl.GetFrameTime() * 1.65
 	} else {
 		Player.MoveByVector(Player.Movement, 1)
 	}
