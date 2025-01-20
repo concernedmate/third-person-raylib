@@ -3,16 +3,18 @@ package main
 import (
 	"concernedmate/trial-raylib/controls"
 	"concernedmate/trial-raylib/entities"
+	"concernedmate/trial-raylib/gameplay"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 func main() {
-	rl.InitWindow(1280, 720, "raylib [core] example - basic window")
+	rl.InitWindow(1280, 720, "monhun bow clone")
 	defer rl.CloseWindow()
 
-	Player := entities.NewPlayer()
-	// model := rl.LoadModelFromMesh(rl.GenMeshCube(1, 1, 1))
+	World := gameplay.World{
+		MainPlayer: entities.NewPlayer(),
+	}
 
 	rl.DisableCursor()
 	rl.SetTargetFPS(60)
@@ -20,28 +22,23 @@ func main() {
 		rl.ClearBackground(rl.White)
 
 		// controls
-		controls.UpdateCameraThirdPerson(&Player)
-		controls.UpdatePlayerMovement(&Player)
+		controls.UpdateCameraThirdPerson(&World.MainPlayer)
+		controls.UpdatePlayerMovement(&World.MainPlayer)
+		controls.ShootArrow(World.MainPlayer, &World)
 
-		// player state
-		Player.GravityAndPositionLoop()
+		// game state
+		World.LoopPhysicsEntities()
+		World.LoopGarbageDeletionEntities()
 
 		// start draw
 		rl.BeginDrawing()
 
-		// start 3d
-		rl.BeginMode3D(*Player.Camera)
+		// render
+		World.RenderEntities()
 
-		rl.DrawModel(Player.Model, Player.Position, 1, rl.Blue)
-		// rl.DrawModel(model, Player.ForwardPosition, 1, rl.Red)
-		// rl.DrawModel(model, Player.AimPosition, 1, rl.Green)
-		// rl.DrawModel(model, Player.Camera.Target, 1, rl.LightGray)
-		rl.DrawGrid(100, 1.0)
-
-		rl.EndMode3D()
-		// end 3d
+		// HUD
+		World.MainPlayer.RenderHud()
 
 		rl.EndDrawing()
-		// end draw
 	}
 }
