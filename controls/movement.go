@@ -60,6 +60,9 @@ func UpdateCameraThirdPerson(player *entities.Player) {
 
 	var dist float32
 	var diff rl.Vector3
+	if rl.IsMouseButtonPressed(rl.MouseButtonRight) {
+		player.Camera.Position = player.AimPosition
+	}
 	if rl.IsMouseButtonDown(rl.MouseButtonRight) {
 		AimingCameraYaw(player, -mouseDelta.X*0.001)
 		AimingCameraPitch(player, -mouseDelta.Y*0.001)
