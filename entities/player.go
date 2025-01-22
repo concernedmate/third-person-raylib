@@ -6,7 +6,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const DASH_CD = 1000 // ms
+const DASH_CD = 800 // ms
 
 type Player struct {
 	Model           rl.Model
@@ -61,7 +61,7 @@ func NewPlayer() Player {
 		AimPosition:     aimpos,
 		Rotation:        rotation,
 
-		WalkingSpeed:    15.0,
+		WalkingSpeed:    10.0,
 		WalkingModifier: 0.2,
 		JumpingSpeed:    30,
 		DashSpeed:       50,
@@ -156,6 +156,7 @@ func (Player *Player) ReleaseArrow() int {
 	}
 	Player.ChargeCurrentLevel = 0
 	Player.ChargeTimer = time.Now()
+	Player.DashTimer = time.Now()
 	return chargeLevel
 }
 
@@ -194,15 +195,15 @@ func (Player *Player) RenderHud() {
 			return
 		}
 		if Player.ChargeCurrentLevel < float32(Player.ChargeLevel1) {
-			circle := 310 - (Player.ChargeCurrentLevel / float32(Player.ChargeLevel1) * 300)
+			circle := 65 - (Player.ChargeCurrentLevel / float32(Player.ChargeLevel1) * 50)
 			rl.DrawCircleLines(640, 360, circle, rl.Red)
 		}
 		if Player.ChargeCurrentLevel > float32(Player.ChargeLevel1) && Player.ChargeCurrentLevel < float32(Player.ChargeLevel2) {
-			circle := 310 - ((Player.ChargeCurrentLevel - 100) / float32(Player.ChargeLevel1) * 300)
+			circle := 65 - ((Player.ChargeCurrentLevel - 100) / float32(Player.ChargeLevel1) * 50)
 			rl.DrawCircleLines(640, 360, circle, rl.Green)
 		}
 		if Player.ChargeCurrentLevel > float32(Player.ChargeLevel2) && Player.ChargeCurrentLevel < float32(Player.ChargeLevel3) {
-			circle := 310 - ((Player.ChargeCurrentLevel - 200) / float32(Player.ChargeLevel1) * 300)
+			circle := 65 - ((Player.ChargeCurrentLevel - 200) / float32(Player.ChargeLevel1) * 50)
 			rl.DrawCircleLines(640, 360, circle, rl.Blue)
 		}
 	}

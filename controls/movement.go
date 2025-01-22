@@ -136,66 +136,73 @@ func ShootArrow(player *entities.Player, world *gameplay.World) {
 		if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
 			chargeLevel := player.ReleaseArrow()
 			switch chargeLevel {
-			case 0:
-				{
-					position := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.1, 0.1, 0.1)))
-					arrow := entities.NewBowProjectile(position, player.Camera.Target)
-					world.BowProjectiles = append(world.BowProjectiles, arrow)
-					break
-				}
 			case 1:
 				{
 					position1 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.1, 0.1, 0.1)))
-					position2 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.5, 0.5, 0.5)))
-
 					arrow1 := entities.NewBowProjectile(position1, player.Camera.Target)
-					arrow2 := entities.NewBowProjectile(position2, player.Camera.Target)
-
 					world.BowProjectiles = append(world.BowProjectiles, arrow1)
-					world.BowProjectiles = append(world.BowProjectiles, arrow2)
 					break
 				}
 			case 2:
 				{
+
 					position1 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.1, 0.1, 0.1)))
-					position2 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.5, 0.5, 0.5)))
-					position2.Y += 0.5
-					position3 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.5, -0.5, -0.5)))
-					position3.Y -= 0.5
+					position1.Y += 0.2
+					position2 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.1, -0.1, -0.1)))
+					position2.Y -= 0.2
+					position3 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.5, 0.5, 0.5)))
+					position3.Y += 0.5
+					position4 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.5, -0.5, -0.5)))
+					position4.Y -= 0.5
 
 					arrow1 := entities.NewBowProjectile(position1, player.Camera.Target)
 					arrow2 := entities.NewBowProjectile(position2, player.Camera.Target)
 					arrow3 := entities.NewBowProjectile(position3, player.Camera.Target)
+					arrow4 := entities.NewBowProjectile(position4, player.Camera.Target)
 
 					world.BowProjectiles = append(world.BowProjectiles, arrow1)
 					world.BowProjectiles = append(world.BowProjectiles, arrow2)
 					world.BowProjectiles = append(world.BowProjectiles, arrow3)
+					world.BowProjectiles = append(world.BowProjectiles, arrow4)
 					break
 				}
 			case 3:
 				{
-					position1 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.0, 0.0, 0.0)))
-					position2 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.15, 0.15, 0.15)))
-					position3 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.15, -0.15, -0.15)))
-					position4 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.25, 0.25, 0.25)))
-					position5 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.25, -0.25, -0.25)))
+					position1 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.15, 0.15, 0.15)))
+					position2 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.15, -0.15, -0.15)))
+					position3 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.25, 0.25, 0.25)))
+					position4 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.25, -0.25, -0.25)))
+					position5 := rl.NewVector3(position1.X, position1.Y+1, position1.Z)
+					position6 := rl.NewVector3(position2.X, position2.Y+1, position2.Z)
+					position7 := rl.NewVector3(position3.X, position3.Y+1, position3.Z)
+					position8 := rl.NewVector3(position4.X, position4.Y+1, position4.Z)
 
-					target2 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(2, 2, 2)))
-					target3 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-2, -2, -2)))
-					target4 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(4, 4, 4)))
-					target5 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-4, -4, -4)))
+					target1 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(1, 1, 1)))
+					target2 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-1, -1, -1)))
+					target3 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(3, 3, 3)))
+					target4 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-3, -3, -3)))
+					target5 := rl.NewVector3(target1.X, target1.Y+1, target1.Z)
+					target6 := rl.NewVector3(target2.X, target2.Y+1, target2.Z)
+					target7 := rl.NewVector3(target3.X, target3.Y+1, target3.Z)
+					target8 := rl.NewVector3(target4.X, target4.Y+1, target4.Z)
 
-					arrow1 := entities.NewBowProjectile(position1, player.Camera.Target)
+					arrow1 := entities.NewBowProjectile(position1, target1)
 					arrow2 := entities.NewBowProjectile(position2, target2)
 					arrow3 := entities.NewBowProjectile(position3, target3)
 					arrow4 := entities.NewBowProjectile(position4, target4)
 					arrow5 := entities.NewBowProjectile(position5, target5)
+					arrow6 := entities.NewBowProjectile(position6, target6)
+					arrow7 := entities.NewBowProjectile(position7, target7)
+					arrow8 := entities.NewBowProjectile(position8, target8)
 
 					world.BowProjectiles = append(world.BowProjectiles, arrow1)
 					world.BowProjectiles = append(world.BowProjectiles, arrow2)
 					world.BowProjectiles = append(world.BowProjectiles, arrow3)
 					world.BowProjectiles = append(world.BowProjectiles, arrow4)
 					world.BowProjectiles = append(world.BowProjectiles, arrow5)
+					world.BowProjectiles = append(world.BowProjectiles, arrow6)
+					world.BowProjectiles = append(world.BowProjectiles, arrow7)
+					world.BowProjectiles = append(world.BowProjectiles, arrow8)
 					break
 				}
 			}

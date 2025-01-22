@@ -66,10 +66,6 @@ func (World *World) RenderEntities() {
 	}
 	rl.BeginMode3D(*World.MainPlayer.Camera)
 
-	// rl.DrawModel(*model, World.MainPlayer.Camera.Target, 1, rl.LightGray)
-	rl.DrawModelWires(*model, World.MainPlayer.ForwardPosition, 1, rl.Green)
-	rl.DrawModelWires(*model, World.MainPlayer.Camera.Target, 1, rl.Red)
-
 	rl.DrawModelWires(World.MainPlayer.Model, World.MainPlayer.Position, 1, rl.Blue)
 	for _, arrow := range World.BowProjectiles {
 		rl.DrawModel(arrow.Model, arrow.Position, 1, rl.Green)
