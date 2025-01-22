@@ -6,6 +6,8 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+const DASH_CD = 1000 // ms
+
 type Player struct {
 	Model           rl.Model
 	Position        rl.Vector3
@@ -14,8 +16,8 @@ type Player struct {
 	Rotation        rl.Vector3
 	Movement        rl.Vector3
 
-	WalkingSpeed  float32
-	StrafingSpeed float32
+	WalkingSpeed    float32
+	WalkingModifier float32
 
 	JumpingSpeed     float32
 	VerticalMovement float32
@@ -26,7 +28,12 @@ type Player struct {
 	DashDirection rl.Vector3
 	DashTimer     time.Time
 
-	ShootTimer time.Time
+	ChargeSpeed        int
+	ChargeCurrentLevel float32
+	ChargeLevel1       int
+	ChargeLevel2       int
+	ChargeLevel3       int
+	ChargeTimer        time.Time
 
 	Camera      *rl.Camera3D
 	CameraSpeed float32
@@ -53,12 +60,20 @@ func NewPlayer() Player {
 		ForwardPosition: forward,
 		AimPosition:     aimpos,
 		Rotation:        rotation,
-		WalkingSpeed:    20.0,
-		StrafingSpeed:   10,
+
+		WalkingSpeed:    15.0,
+		WalkingModifier: 0.2,
 		JumpingSpeed:    30,
-		DashSpeed:       30,
-		Camera:          &camera,
-		CameraSpeed:     100,
+		DashSpeed:       50,
+
+		ChargeSpeed:        75,
+		ChargeCurrentLevel: 0,
+		ChargeLevel1:       100,
+		ChargeLevel2:       200,
+		ChargeLevel3:       300,
+
+		Camera:      &camera,
+		CameraSpeed: 100,
 	}
 }
 
@@ -98,7 +113,7 @@ func (Player *Player) Jump() {
 }
 
 func (Player *Player) Dash(direction rl.Vector3) {
-	if time.Since(Player.DashTimer).Milliseconds() < 300 {
+	if time.Since(Player.DashTimer).Milliseconds() < DASH_CD {
 		return
 	}
 	if Player.DashModifier > 0 || Player.Position.Y > 2 {
@@ -109,11 +124,39 @@ func (Player *Player) Dash(direction rl.Vector3) {
 	Player.DashTimer = time.Now()
 }
 
-func (Player *Player) Move(direction rl.Vector3) {
+func (Player *Player) Move(direction rl.Vector3, modifier float32) {
 	if Player.Position.Y > 1 {
 		return
 	}
 	Player.Movement = direction
+	Player.WalkingModifier = modifier
+}
+
+func (Player *Player) ChargeArrow() {
+	if Player.DashModifier > 0 {
+		return
+	}
+	if time.Since(Player.ChargeTimer).Milliseconds() < DASH_CD {
+		return
+	}
+	Player.ChargeCurrentLevel += float32(Player.ChargeSpeed) * rl.GetFrameTime()
+}
+
+// returns charge level (1, 2, or 3) and reset it
+func (Player *Player) ReleaseArrow() int {
+	var chargeLevel int
+	if Player.ChargeCurrentLevel > float32(Player.ChargeLevel1) {
+		chargeLevel = 1
+	}
+	if Player.ChargeCurrentLevel > float32(Player.ChargeLevel2) {
+		chargeLevel = 2
+	}
+	if Player.ChargeCurrentLevel > float32(Player.ChargeLevel3) {
+		chargeLevel = 3
+	}
+	Player.ChargeCurrentLevel = 0
+	Player.ChargeTimer = time.Now()
+	return chargeLevel
 }
 
 func (Player *Player) GravityAndPositionLoop() {
@@ -130,8 +173,13 @@ func (Player *Player) GravityAndPositionLoop() {
 	if Player.DashModifier > 0 {
 		Player.MoveByVector(Player.DashDirection, Player.DashModifier)
 		Player.DashModifier -= Player.DashSpeed / Player.WalkingSpeed * rl.GetFrameTime() * 1.65
+
+		Player.ChargeCurrentLevel += float32(Player.ChargeSpeed) * 1.75 * rl.GetFrameTime()
 	} else {
-		Player.MoveByVector(Player.Movement, 1)
+		if time.Since(Player.DashTimer).Milliseconds() < DASH_CD {
+			return
+		}
+		Player.MoveByVector(Player.Movement, Player.WalkingModifier)
 	}
 }
 
@@ -141,5 +189,21 @@ func (Player *Player) RenderHud() {
 		rl.DrawCircle(640, 360, 2, rl.Red)
 		rl.DrawCircleLines(640, 360, 15, rl.Red)
 		rl.DrawCircleLines(640, 360, 10, rl.Red)
+
+		if time.Since(Player.ChargeTimer).Milliseconds() < DASH_CD {
+			return
+		}
+		if Player.ChargeCurrentLevel < float32(Player.ChargeLevel1) {
+			circle := 310 - (Player.ChargeCurrentLevel / float32(Player.ChargeLevel1) * 300)
+			rl.DrawCircleLines(640, 360, circle, rl.Red)
+		}
+		if Player.ChargeCurrentLevel > float32(Player.ChargeLevel1) && Player.ChargeCurrentLevel < float32(Player.ChargeLevel2) {
+			circle := 310 - ((Player.ChargeCurrentLevel - 100) / float32(Player.ChargeLevel1) * 300)
+			rl.DrawCircleLines(640, 360, circle, rl.Green)
+		}
+		if Player.ChargeCurrentLevel > float32(Player.ChargeLevel2) && Player.ChargeCurrentLevel < float32(Player.ChargeLevel3) {
+			circle := 310 - ((Player.ChargeCurrentLevel - 200) / float32(Player.ChargeLevel1) * 300)
+			rl.DrawCircleLines(640, 360, circle, rl.Blue)
+		}
 	}
 }

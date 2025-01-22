@@ -24,7 +24,7 @@ func main() {
 		// controls
 		controls.UpdateCameraThirdPerson(&World.MainPlayer)
 		controls.UpdatePlayerMovement(&World.MainPlayer)
-		controls.ShootArrow(World.MainPlayer, &World)
+		controls.ShootArrow(&World.MainPlayer, &World)
 
 		// game state
 		World.LoopPhysicsEntities()
