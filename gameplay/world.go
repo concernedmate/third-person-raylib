@@ -17,7 +17,7 @@ type World struct {
 	BowProjectiles []entities.BowProjectile
 }
 
-func destroyEntities[V entities.BowProjectile](World *World, entity V) {
+func destroyEntities[V any](World *World, entity V) {
 	v := reflect.ValueOf(entity)
 
 	switch v.Type().Name() {
@@ -62,7 +62,6 @@ func (World *World) RenderEntities() {
 
 		rotation := rl.NewVector3(float32(xAngle), float32(yAngle), float32(zAngle))
 		model.Transform = rl.MatrixRotateXYZ(rotation)
-
 	}
 	rl.BeginMode3D(*World.MainPlayer.Camera)
 

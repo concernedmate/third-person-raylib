@@ -4,6 +4,7 @@ import (
 	"concernedmate/trial-raylib/controls"
 	"concernedmate/trial-raylib/entities"
 	"concernedmate/trial-raylib/gameplay"
+	"concernedmate/trial-raylib/hud"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -24,7 +25,7 @@ func main() {
 		// controls
 		controls.UpdateCameraThirdPerson(&World.MainPlayer)
 		controls.UpdatePlayerMovement(&World.MainPlayer)
-		controls.ShootArrow(&World.MainPlayer, &World)
+		controls.UpdateChargeLevel(&World.MainPlayer, &World)
 
 		// game state
 		World.LoopPhysicsEntities()
@@ -37,7 +38,7 @@ func main() {
 		World.RenderEntities()
 
 		// HUD
-		World.MainPlayer.RenderHud()
+		hud.RenderHud(&World.MainPlayer)
 
 		rl.EndDrawing()
 	}

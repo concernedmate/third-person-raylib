@@ -4,107 +4,29 @@ import (
 	"concernedmate/trial-raylib/entities"
 	"concernedmate/trial-raylib/gameplay"
 	"math"
+	"math/rand"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func UpdatePlayerMovement(player *entities.Player) {
-	// calculate position
-	forward := player.ForwardDirection()
-	right := player.RightDirection()
-
-	vectorMovement := rl.NewVector3(0, 0, 0)
-	if rl.IsKeyDown(rl.KeyW) {
-		vectorMovement.X += forward.X
-		vectorMovement.Z += forward.Z
-	}
-	if rl.IsKeyDown(rl.KeyS) {
-		vectorMovement.X -= forward.X
-		vectorMovement.Z -= forward.Z
-	}
-	if rl.IsKeyDown(rl.KeyD) {
-		vectorMovement.X += right.X
-		vectorMovement.Z += right.Z
-	}
-	if rl.IsKeyDown(rl.KeyA) {
-		vectorMovement.X -= right.X
-		vectorMovement.Z -= right.Z
-	}
-	if rl.IsKeyPressed(rl.KeySpace) {
-		player.Dash(vectorMovement)
-	}
-	if rl.IsKeyPressed(rl.KeyC) {
-		player.Jump()
-	}
-
-	if rl.IsMouseButtonDown(rl.MouseButtonRight) {
-		player.Move(vectorMovement, 0.3)
-	} else {
-		player.Move(vectorMovement, 1)
-	}
-
-	diff := rl.Vector3Subtract(player.Position, player.Camera.Position)
-	yAngle := math.Atan2(float64(diff.Z), float64(diff.X)) + math.Pi/2.0
-	rotation := rl.NewVector3(0, float32(yAngle), 0)
-
-	player.Rotation = rotation
-	player.Model.Transform = rl.MatrixRotateY(rotation.Y)
-
-	player.ForwardPosition.X = player.Position.X + float32(math.Sin(yAngle))*10
-	player.ForwardPosition.Z = player.Position.Z - float32(math.Cos(yAngle))*10
-
-	aimPos := rl.Vector3Subtract(player.Position, rl.Vector3Multiply(player.ForwardDirection(), rl.NewVector3(3, 3, 3)))
-	player.AimPosition.X = aimPos.X + float32(math.Sin(yAngle+(90*math.Pi/180)))
-	player.AimPosition.Z = aimPos.Z - float32(math.Cos(yAngle+(90*math.Pi/180)))
-}
-
-func UpdateCameraThirdPerson(player *entities.Player) {
-	mouseDelta := rl.GetMouseDelta()
-
-	camSpeed := player.CameraSpeed * rl.GetFrameTime()
-
-	var dist float32
-	var diff rl.Vector3
-	if rl.IsMouseButtonPressed(rl.MouseButtonRight) {
-		player.Camera.Position = player.AimPosition
-	}
-	if rl.IsMouseButtonDown(rl.MouseButtonRight) {
-		AimingCameraYaw(player, -mouseDelta.X*0.001)
-		AimingCameraPitch(player, -mouseDelta.Y*0.001)
-	} else {
-		rl.CameraYaw(player.Camera, -mouseDelta.X*0.003, 1)
-		rl.CameraPitch(player.Camera, -mouseDelta.Y*0.003, 1, 1, 0)
-
-		dist = rl.Vector3Distance(player.Position, player.Camera.Position)
-		diff = rl.Vector3Normalize(rl.Vector3Subtract(player.Camera.Target, player.Camera.Position))
-
-		if dist <= 20 {
-			player.Camera.Position = rl.Vector3Subtract(player.Camera.Position, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
-			player.Camera.Target = rl.Vector3Subtract(player.Camera.Target, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
-		} else {
-			player.Camera.Target = player.Position
-		}
-	}
-}
-
-func AimingCameraYaw(player *entities.Player, angle float32) {
-	camera := player.Camera
+func aimingCameraYaw(Player *entities.Player, angle float32) {
+	camera := Player.Camera
 	up := rl.GetCameraUp(camera)
 
-	cameraPosition := rl.Vector3Subtract(player.Position, camera.Position)
+	cameraPosition := rl.Vector3Subtract(Player.Position, camera.Position)
 
 	cameraPosition = rl.Vector3RotateByAxisAngle(cameraPosition, up, angle)
-	camera.Position = rl.Vector3Subtract(player.Position, cameraPosition)
+	camera.Position = rl.Vector3Subtract(Player.Position, cameraPosition)
 }
 
-func AimingCameraPitch(player *entities.Player, angle float32) {
-	camera := player.Camera
+func aimingCameraPitch(Player *entities.Player, angle float32) {
+	camera := Player.Camera
 
 	up := rl.GetCameraUp(camera)
 	right := rl.GetCameraRight(camera)
 
 	// View vector
-	tempPosition := player.Position
+	tempPosition := Player.Position
 	tempPosition.Y += 1.25
 	cameraPosition := rl.Vector3Subtract(tempPosition, camera.Position)
 
@@ -130,79 +52,148 @@ func AimingCameraPitch(player *entities.Player, angle float32) {
 	camera.Target = rl.Vector3Add(camera.Position, rl.Vector3Multiply(targetPosition, rl.NewVector3(15/maxAngleUp, 15/maxAngleUp, 15/maxAngleUp)))
 }
 
-func ShootArrow(player *entities.Player, world *gameplay.World) {
+func releaseArrow(Player *entities.Player, World *gameplay.World, bowType entities.BowType, projCount int) {
+	switch bowType {
+	case entities.Focus:
+		{
+			for i := range projCount {
+				positionModifier := rand.Float32() / 3
+				if i%2 == 0 {
+					positionModifier *= -1
+				}
+				vectorModifier := rl.Vector3Multiply(Player.RightDirection(), rl.NewVector3(positionModifier, positionModifier, positionModifier))
+				if i%2 == 0 {
+					vectorModifier.Y += 0.5
+				}
+				position := rl.Vector3Add(Player.Position, vectorModifier)
+				arrow := entities.NewBowProjectile(position, Player.Camera.Target)
+				World.BowProjectiles = append(World.BowProjectiles, arrow)
+			}
+			break
+		}
+	case entities.Spread:
+		{
+			for i := range projCount {
+				positionModifier := rand.Float32() / 3
+				targetPositionModifier := 1 + (positionModifier * 10)
+
+				if i%2 == 0 {
+					positionModifier *= -1
+					targetPositionModifier *= -1
+				}
+
+				vectorModifier := rl.Vector3Multiply(Player.RightDirection(), rl.NewVector3(positionModifier, positionModifier, positionModifier))
+				targetVectorModifier := rl.Vector3Multiply(Player.RightDirection(), rl.NewVector3(targetPositionModifier, targetPositionModifier, targetPositionModifier))
+
+				position := rl.Vector3Add(Player.Position, vectorModifier)
+				targetPosition := rl.Vector3Add(Player.Camera.Target, targetVectorModifier)
+
+				arrow := entities.NewBowProjectile(position, targetPosition)
+				World.BowProjectiles = append(World.BowProjectiles, arrow)
+			}
+			break
+		}
+	}
+}
+
+func UpdatePlayerMovement(Player *entities.Player) {
+	// calculate position
+	forward := Player.ForwardDirection()
+	right := Player.RightDirection()
+
+	vectorMovement := rl.NewVector3(0, 0, 0)
+	if rl.IsKeyDown(rl.KeyW) {
+		vectorMovement.X += forward.X
+		vectorMovement.Z += forward.Z
+	}
+	if rl.IsKeyDown(rl.KeyS) {
+		vectorMovement.X -= forward.X
+		vectorMovement.Z -= forward.Z
+	}
+	if rl.IsKeyDown(rl.KeyD) {
+		vectorMovement.X += right.X
+		vectorMovement.Z += right.Z
+	}
+	if rl.IsKeyDown(rl.KeyA) {
+		vectorMovement.X -= right.X
+		vectorMovement.Z -= right.Z
+	}
+	if rl.IsKeyPressed(rl.KeySpace) {
+		Player.Dash(vectorMovement)
+	}
+	if rl.IsKeyPressed(rl.KeyC) {
+		Player.Jump()
+	}
+
 	if rl.IsMouseButtonDown(rl.MouseButtonRight) {
-		player.ChargeArrow()
+		Player.Move(vectorMovement, 0.3)
+	} else {
+		Player.Move(vectorMovement, 1)
+	}
+
+	diff := rl.Vector3Subtract(Player.Position, Player.Camera.Position)
+	yAngle := math.Atan2(float64(diff.Z), float64(diff.X)) + math.Pi/2.0
+	rotation := rl.NewVector3(0, float32(yAngle), 0)
+
+	Player.Rotation = rotation
+	Player.Model.Transform = rl.MatrixRotateY(rotation.Y)
+
+	Player.ForwardPosition.X = Player.Position.X + float32(math.Sin(yAngle))*10
+	Player.ForwardPosition.Z = Player.Position.Z - float32(math.Cos(yAngle))*10
+
+	aimPos := rl.Vector3Subtract(Player.Position, rl.Vector3Multiply(Player.ForwardDirection(), rl.NewVector3(3, 3, 3)))
+	Player.AimPosition.X = aimPos.X + float32(math.Sin(yAngle+(90*math.Pi/180)))
+	Player.AimPosition.Z = aimPos.Z - float32(math.Cos(yAngle+(90*math.Pi/180)))
+}
+
+func UpdateCameraThirdPerson(Player *entities.Player) {
+	mouseDelta := rl.GetMouseDelta()
+
+	camSpeed := Player.CameraSpeed * rl.GetFrameTime()
+
+	var dist float32
+	var diff rl.Vector3
+	if rl.IsMouseButtonPressed(rl.MouseButtonRight) {
+		Player.Camera.Position = Player.AimPosition
+	}
+	if rl.IsMouseButtonDown(rl.MouseButtonRight) {
+		aimingCameraYaw(Player, -mouseDelta.X*0.001)
+		aimingCameraPitch(Player, -mouseDelta.Y*0.001)
+	} else {
+		rl.CameraYaw(Player.Camera, -mouseDelta.X*0.003, 1)
+		rl.CameraPitch(Player.Camera, -mouseDelta.Y*0.003, 1, 1, 0)
+
+		dist = rl.Vector3Distance(Player.Position, Player.Camera.Position)
+		diff = rl.Vector3Normalize(rl.Vector3Subtract(Player.Camera.Target, Player.Camera.Position))
+
+		if dist <= 20 {
+			Player.Camera.Position = rl.Vector3Subtract(Player.Camera.Position, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
+			Player.Camera.Target = rl.Vector3Subtract(Player.Camera.Target, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
+		} else {
+			Player.Camera.Target = Player.Position
+		}
+	}
+}
+
+func UpdateChargeLevel(Player *entities.Player, World *gameplay.World) {
+	if rl.IsMouseButtonDown(rl.MouseButtonRight) {
+		Player.ChargeArrow()
 		if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
-			chargeLevel := player.ReleaseArrow()
+			chargeLevel := Player.ReleaseArrow()
 			switch chargeLevel {
 			case 1:
 				{
-					position1 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.1, 0.1, 0.1)))
-					arrow1 := entities.NewBowProjectile(position1, player.Camera.Target)
-					world.BowProjectiles = append(world.BowProjectiles, arrow1)
+					releaseArrow(Player, World, Player.Bow.L1Type, Player.Bow.L1ProjCount)
 					break
 				}
 			case 2:
 				{
-
-					position1 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.1, 0.1, 0.1)))
-					position1.Y += 0.2
-					position2 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.1, -0.1, -0.1)))
-					position2.Y -= 0.2
-					position3 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.5, 0.5, 0.5)))
-					position3.Y += 0.5
-					position4 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.5, -0.5, -0.5)))
-					position4.Y -= 0.5
-
-					arrow1 := entities.NewBowProjectile(position1, player.Camera.Target)
-					arrow2 := entities.NewBowProjectile(position2, player.Camera.Target)
-					arrow3 := entities.NewBowProjectile(position3, player.Camera.Target)
-					arrow4 := entities.NewBowProjectile(position4, player.Camera.Target)
-
-					world.BowProjectiles = append(world.BowProjectiles, arrow1)
-					world.BowProjectiles = append(world.BowProjectiles, arrow2)
-					world.BowProjectiles = append(world.BowProjectiles, arrow3)
-					world.BowProjectiles = append(world.BowProjectiles, arrow4)
+					releaseArrow(Player, World, Player.Bow.L2Type, Player.Bow.L2ProjCount)
 					break
 				}
 			case 3:
 				{
-					position1 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.15, 0.15, 0.15)))
-					position2 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.15, -0.15, -0.15)))
-					position3 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(0.25, 0.25, 0.25)))
-					position4 := rl.Vector3Add(player.Position, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-0.25, -0.25, -0.25)))
-					position5 := rl.NewVector3(position1.X, position1.Y+1, position1.Z)
-					position6 := rl.NewVector3(position2.X, position2.Y+1, position2.Z)
-					position7 := rl.NewVector3(position3.X, position3.Y+1, position3.Z)
-					position8 := rl.NewVector3(position4.X, position4.Y+1, position4.Z)
-
-					target1 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(1, 1, 1)))
-					target2 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-1, -1, -1)))
-					target3 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(3, 3, 3)))
-					target4 := rl.Vector3Add(player.Camera.Target, rl.Vector3Multiply(player.RightDirection(), rl.NewVector3(-3, -3, -3)))
-					target5 := rl.NewVector3(target1.X, target1.Y+1, target1.Z)
-					target6 := rl.NewVector3(target2.X, target2.Y+1, target2.Z)
-					target7 := rl.NewVector3(target3.X, target3.Y+1, target3.Z)
-					target8 := rl.NewVector3(target4.X, target4.Y+1, target4.Z)
-
-					arrow1 := entities.NewBowProjectile(position1, target1)
-					arrow2 := entities.NewBowProjectile(position2, target2)
-					arrow3 := entities.NewBowProjectile(position3, target3)
-					arrow4 := entities.NewBowProjectile(position4, target4)
-					arrow5 := entities.NewBowProjectile(position5, target5)
-					arrow6 := entities.NewBowProjectile(position6, target6)
-					arrow7 := entities.NewBowProjectile(position7, target7)
-					arrow8 := entities.NewBowProjectile(position8, target8)
-
-					world.BowProjectiles = append(world.BowProjectiles, arrow1)
-					world.BowProjectiles = append(world.BowProjectiles, arrow2)
-					world.BowProjectiles = append(world.BowProjectiles, arrow3)
-					world.BowProjectiles = append(world.BowProjectiles, arrow4)
-					world.BowProjectiles = append(world.BowProjectiles, arrow5)
-					world.BowProjectiles = append(world.BowProjectiles, arrow6)
-					world.BowProjectiles = append(world.BowProjectiles, arrow7)
-					world.BowProjectiles = append(world.BowProjectiles, arrow8)
+					releaseArrow(Player, World, Player.Bow.L3Type, Player.Bow.L3ProjCount)
 					break
 				}
 			}
@@ -210,6 +201,6 @@ func ShootArrow(player *entities.Player, world *gameplay.World) {
 	}
 
 	if rl.IsMouseButtonReleased(rl.MouseButtonRight) {
-		player.ReleaseArrow()
+		Player.ReleaseArrow()
 	}
 }

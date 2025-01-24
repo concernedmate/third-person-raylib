@@ -6,6 +6,24 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+type BowType int
+
+const (
+	Focus BowType = iota
+	Spread
+	Pierce
+	Blast
+)
+
+type Bow struct {
+	L1Type      BowType
+	L2Type      BowType
+	L3Type      BowType
+	L1ProjCount int
+	L2ProjCount int
+	L3ProjCount int
+}
+
 type BowProjectile struct {
 	Model    rl.Model
 	Position rl.Vector3
@@ -18,6 +36,17 @@ type BowProjectile struct {
 	LifeDurationMS int
 
 	MarkForDeletion bool
+}
+
+func NewBowType1() Bow {
+	return Bow{
+		L1Type:      Focus,
+		L2Type:      Focus,
+		L3Type:      Spread,
+		L1ProjCount: 2,
+		L2ProjCount: 3,
+		L3ProjCount: 6,
+	}
 }
 
 func NewBowProjectile(position rl.Vector3, target rl.Vector3) BowProjectile {
@@ -60,5 +89,4 @@ func (Arrow *BowProjectile) GravityAndPositionLoop() {
 
 		Arrow.MoveByVector(Arrow.Target, 1)
 	}
-
 }
