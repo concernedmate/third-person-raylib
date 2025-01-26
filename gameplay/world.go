@@ -3,7 +3,6 @@ package gameplay
 import (
 	"concernedmate/trial-raylib/entities"
 	"math"
-	"reflect"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -14,40 +13,65 @@ type World struct {
 	MainPlayer   entities.Player
 	OtherPlayers []entities.Player // only for rendering
 
-	BowProjectiles []entities.BowProjectile
+	Projectiles []entities.Projectile
+	Mobs        []entities.Mob
 }
 
-func destroyEntities[V any](World *World, entity V) {
-	v := reflect.ValueOf(entity)
+func (World *World) renderMobs(mob entities.Mob) {
+	rl.DrawModel(mob.Model, mob.Position, 1, rl.Red)
+}
 
-	switch v.Type().Name() {
-	case "BowProjectile":
-		{
-			var newArr []entities.BowProjectile
-			for _, val := range World.BowProjectiles {
-				if !val.MarkForDeletion {
-					newArr = append(newArr, val)
-				}
+func (World *World) checkMobsProjCollision(mob entities.Mob, proj entities.Projectile) bool {
+	a := rl.GetModelBoundingBox(mob.Model)
+	a.Min = rl.Vector3Add(a.Min, mob.Position)
+	a.Max = rl.Vector3Add(a.Max, mob.Position)
+
+	b := rl.GetModelBoundingBox(proj.Model)
+	b.Min = rl.Vector3Add(b.Min, proj.Position)
+	b.Max = rl.Vector3Add(b.Max, proj.Position)
+
+	return rl.CheckCollisionBoxes(a, b)
+}
+
+/* ================================== LOOP BELOW ================================== */
+/* ================================== LOOP BELOW ================================== */
+
+func (World *World) LoopPhysicsEntities() {
+	World.MainPlayer.GravityAndPositionLoop()
+
+	for idx := range World.Projectiles {
+		World.Projectiles[idx].GravityAndPositionLoop()
+	}
+
+	// collision
+	for _, mob := range World.Mobs {
+		for idx, proj := range World.Projectiles {
+			if World.checkMobsProjCollision(mob, proj) {
+				World.Projectiles[idx].FreezePosition()
 			}
-			World.BowProjectiles = newArr
 		}
 	}
 }
 
-func (World *World) LoopPhysicsEntities() {
-	World.MainPlayer.GravityAndPositionLoop()
-	for idx := range World.BowProjectiles {
-		World.BowProjectiles[idx].GravityAndPositionLoop()
-	}
-}
-
 func (World *World) LoopGarbageDeletionEntities() {
-	for _, val := range World.BowProjectiles {
-		destroyEntities(World, val)
+	var newProj []entities.Projectile
+	for _, val := range World.Projectiles {
+		if !val.MarkForDeletion {
+			newProj = append(newProj, val)
+		}
 	}
+	World.Projectiles = newProj
+
+	var newMobs []entities.Mob
+	for _, val := range World.Mobs {
+		if !val.MarkForDeletion {
+			newMobs = append(newMobs, val)
+		}
+	}
+	World.Mobs = newMobs
 }
 
-func (World *World) RenderEntities() {
+func (World *World) LoopRenderEntities() {
 	if model == nil {
 		// rl.GenMeshCone(0.1, 1.5, 10)
 		m := rl.LoadModelFromMesh(rl.GenMeshCube(0.7, 0.7, 0.7))
@@ -65,9 +89,14 @@ func (World *World) RenderEntities() {
 	}
 	rl.BeginMode3D(*World.MainPlayer.Camera)
 
+	// render
 	rl.DrawModelWires(World.MainPlayer.Model, World.MainPlayer.Position, 1, rl.Blue)
-	for _, arrow := range World.BowProjectiles {
-		rl.DrawModel(arrow.Model, arrow.Position, 1, rl.Green)
+	for _, proj := range World.Projectiles {
+		rl.DrawModel(proj.Model, proj.Position, 1, rl.Green)
+	}
+
+	for _, mob := range World.Mobs {
+		World.renderMobs(mob)
 	}
 
 	rl.DrawGrid(100, 1.0)

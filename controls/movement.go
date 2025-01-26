@@ -27,7 +27,7 @@ func aimingCameraPitch(Player *entities.Player, angle float32) {
 
 	// View vector
 	tempPosition := Player.Position
-	tempPosition.Y += 1.25
+	tempPosition.Y += 1.5
 	cameraPosition := rl.Vector3Subtract(tempPosition, camera.Position)
 
 	// Clamp view up
@@ -48,8 +48,10 @@ func aimingCameraPitch(Player *entities.Player, angle float32) {
 	cameraPosition = rl.Vector3RotateByAxisAngle(cameraPosition, right, angle)
 	camera.Position = rl.Vector3Subtract(tempPosition, cameraPosition)
 
+	tempPosition = rl.Vector3Add(tempPosition, rl.Vector3Multiply(Player.RightDirection(), rl.NewVector3(0.5, 0.5, 0.5)))
 	targetPosition := rl.Vector3Subtract(tempPosition, camera.Position)
-	camera.Target = rl.Vector3Add(camera.Position, rl.Vector3Multiply(targetPosition, rl.NewVector3(15/maxAngleUp, 15/maxAngleUp, 15/maxAngleUp)))
+	targetPosition = rl.Vector3Multiply(targetPosition, rl.NewVector3(30, 30, 30))
+	camera.Target = rl.Vector3Add(camera.Position, targetPosition)
 }
 
 func releaseArrow(Player *entities.Player, World *gameplay.World, bowType entities.BowType, projCount int) {
@@ -66,8 +68,9 @@ func releaseArrow(Player *entities.Player, World *gameplay.World, bowType entiti
 					vectorModifier.Y += 0.5
 				}
 				position := rl.Vector3Add(Player.Position, vectorModifier)
+				position.Y += 1.25
 				arrow := entities.NewBowProjectile(position, Player.Camera.Target)
-				World.BowProjectiles = append(World.BowProjectiles, arrow)
+				World.Projectiles = append(World.Projectiles, arrow)
 			}
 			break
 		}
@@ -86,10 +89,11 @@ func releaseArrow(Player *entities.Player, World *gameplay.World, bowType entiti
 				targetVectorModifier := rl.Vector3Multiply(Player.RightDirection(), rl.NewVector3(targetPositionModifier, targetPositionModifier, targetPositionModifier))
 
 				position := rl.Vector3Add(Player.Position, vectorModifier)
+				position.Y += 1.25
 				targetPosition := rl.Vector3Add(Player.Camera.Target, targetVectorModifier)
 
 				arrow := entities.NewBowProjectile(position, targetPosition)
-				World.BowProjectiles = append(World.BowProjectiles, arrow)
+				World.Projectiles = append(World.Projectiles, arrow)
 			}
 			break
 		}
@@ -132,18 +136,14 @@ func UpdatePlayerMovement(Player *entities.Player) {
 	}
 
 	diff := rl.Vector3Subtract(Player.Position, Player.Camera.Position)
-	yAngle := math.Atan2(float64(diff.Z), float64(diff.X)) + math.Pi/2.0
+	yAngle := math.Atan2(float64(diff.Z), float64(diff.X)) + math.Pi/2.0 + math.Pi
 	rotation := rl.NewVector3(0, float32(yAngle), 0)
 
 	Player.Rotation = rotation
 	Player.Model.Transform = rl.MatrixRotateY(rotation.Y)
 
-	Player.ForwardPosition.X = Player.Position.X + float32(math.Sin(yAngle))*10
-	Player.ForwardPosition.Z = Player.Position.Z - float32(math.Cos(yAngle))*10
-
-	aimPos := rl.Vector3Subtract(Player.Position, rl.Vector3Multiply(Player.ForwardDirection(), rl.NewVector3(3, 3, 3)))
-	Player.AimPosition.X = aimPos.X + float32(math.Sin(yAngle+(90*math.Pi/180)))
-	Player.AimPosition.Z = aimPos.Z - float32(math.Cos(yAngle+(90*math.Pi/180)))
+	Player.ForwardPosition.X = Player.Position.X - float32(math.Sin(yAngle))*10
+	Player.ForwardPosition.Z = Player.Position.Z + float32(math.Cos(yAngle))*10
 }
 
 func UpdateCameraThirdPerson(Player *entities.Player) {
@@ -153,25 +153,42 @@ func UpdateCameraThirdPerson(Player *entities.Player) {
 
 	var dist float32
 	var diff rl.Vector3
-	if rl.IsMouseButtonPressed(rl.MouseButtonRight) {
-		Player.Camera.Position = Player.AimPosition
-	}
 	if rl.IsMouseButtonDown(rl.MouseButtonRight) {
-		aimingCameraYaw(Player, -mouseDelta.X*0.001)
-		aimingCameraPitch(Player, -mouseDelta.Y*0.001)
+		aimPosition := Player.Position
+		aimPosition.Y += 1.3
+		dist = rl.Vector3Distance(aimPosition, Player.Camera.Position)
+		if dist > 2.5 {
+			tempPosition := Player.Position
+			tempPosition = rl.Vector3Add(tempPosition, rl.Vector3Multiply(Player.RightDirection(), rl.NewVector3(0.5, 0.5, 0.5)))
+			tempPosition.Y += 1.5
+			targetPosition := rl.Vector3Subtract(tempPosition, Player.Camera.Position)
+			targetPosition = rl.Vector3Multiply(targetPosition, rl.NewVector3(30, 30, 30))
+			diff = rl.Vector3Normalize(rl.Vector3Subtract(targetPosition, Player.Camera.Position))
+
+			Player.Camera.Position = rl.Vector3Add(Player.Camera.Position, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
+			Player.Camera.Target = rl.Vector3Add(Player.Camera.Target, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
+		} else {
+			aimingCameraYaw(Player, -mouseDelta.X*0.001)
+			aimingCameraPitch(Player, -mouseDelta.Y*0.001)
+		}
 	} else {
-		rl.CameraYaw(Player.Camera, -mouseDelta.X*0.003, 1)
-		rl.CameraPitch(Player.Camera, -mouseDelta.Y*0.003, 1, 1, 0)
+		aimingCameraYaw(Player, -mouseDelta.X*0.003)
+		aimingCameraPitch(Player, -mouseDelta.Y*0.003)
 
 		dist = rl.Vector3Distance(Player.Position, Player.Camera.Position)
-		diff = rl.Vector3Normalize(rl.Vector3Subtract(Player.Camera.Target, Player.Camera.Position))
 
-		if dist <= 20 {
+		tempPosition := Player.Position
+		tempPosition.Y += 1.5
+		if dist <= 10 {
+			diff = rl.Vector3Normalize(rl.Vector3Subtract(Player.Camera.Target, Player.Camera.Position))
 			Player.Camera.Position = rl.Vector3Subtract(Player.Camera.Position, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
-			Player.Camera.Target = rl.Vector3Subtract(Player.Camera.Target, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
-		} else {
-			Player.Camera.Target = Player.Position
+			Player.Camera.Target = Player.Position // rl.Vector3Subtract(Player.Camera.Target, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
+		} else if dist > 12 {
+			diff = rl.Vector3Normalize(rl.Vector3Subtract(Player.Position, Player.Camera.Position))
+			Player.Camera.Position = rl.Vector3Add(Player.Camera.Position, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
+			Player.Camera.Target = rl.Vector3Add(Player.Camera.Target, rl.Vector3Multiply(diff, rl.NewVector3(camSpeed, camSpeed, camSpeed)))
 		}
+		Player.Camera.Target = tempPosition
 	}
 }
 

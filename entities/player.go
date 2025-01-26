@@ -1,6 +1,9 @@
 package entities
 
 import (
+	"log"
+	"os"
+	"path"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -12,7 +15,6 @@ type Player struct {
 	Model           rl.Model
 	Position        rl.Vector3
 	ForwardPosition rl.Vector3
-	AimPosition     rl.Vector3
 	Rotation        rl.Vector3
 	Movement        rl.Vector3
 
@@ -41,14 +43,17 @@ type Player struct {
 }
 
 func NewPlayer() Player {
-	model := rl.LoadModelFromMesh(rl.GenMeshCube(0.75, 2, 0.75))
-	position := rl.NewVector3(0, 1, 0)
+	curpath, err := os.Getwd()
+	if err != nil {
+		log.Fatal("Cannot find assets")
+	}
+	model := rl.LoadModel(path.Join(curpath, "assets", "human.obj")) // rl.LoadModelFromMesh(rl.GenMeshCube(0.75, 2, 0.75))
+	position := rl.NewVector3(0, 0, 0)
 	forward := rl.NewVector3(0, 0, 0)
-	aimpos := rl.NewVector3(0, 0, 0)
 	rotation := rl.NewVector3(0, 0, 0)
 
 	camera := rl.NewCamera3D(
-		rl.NewVector3(-20.0, 10.0, 0.0),
+		rl.NewVector3(-10.0, 10.0, 0.0),
 		position,
 		rl.NewVector3(0, 1.0, 0),
 		45.0,
@@ -61,13 +66,12 @@ func NewPlayer() Player {
 		Model:           model,
 		Position:        position,
 		ForwardPosition: forward,
-		AimPosition:     aimpos,
 		Rotation:        rotation,
 
 		WalkingSpeed:    10.0,
 		WalkingModifier: 0.2,
 		JumpingSpeed:    30,
-		DashSpeed:       50,
+		DashSpeed:       20,
 
 		Bow:                bow,
 		ChargeSpeed:        75,
@@ -77,7 +81,7 @@ func NewPlayer() Player {
 		ChargeLevel3:       300,
 
 		Camera:      &camera,
-		CameraSpeed: 100,
+		CameraSpeed: 25,
 	}
 }
 
@@ -90,7 +94,7 @@ func (Player *Player) RightDirection() rl.Vector3 {
 }
 
 func (Player *Player) AimForwardDirection() rl.Vector3 {
-	return rl.Vector3Normalize(rl.Vector3Subtract(Player.Camera.Target, Player.AimPosition))
+	return rl.Vector3Normalize(rl.Vector3Subtract(Player.Camera.Target, Player.Position))
 }
 
 // vector must be normalized,
@@ -100,17 +104,15 @@ func (Player *Player) MoveByVector(vector rl.Vector3, speedmod float32) {
 	vector = rl.Vector3Multiply(vector, rl.NewVector3(speed, speed, speed))
 
 	Player.Position = rl.Vector3Add(Player.Position, vector)
-	Player.AimPosition = rl.Vector3Add(Player.AimPosition, vector)
 	Player.ForwardPosition = rl.Vector3Add(Player.ForwardPosition, vector)
 	Player.Camera.Position = rl.Vector3Add(Player.Camera.Position, vector)
 	Player.Camera.Target = rl.Vector3Add(Player.Camera.Target, vector)
 
-	Player.AimPosition.Y = Player.Position.Y + 1.3
 	Player.ForwardPosition.Y = Player.Position.Y
 }
 
 func (Player *Player) Jump() {
-	if Player.VerticalMovement > 0 || Player.Position.Y > 2 {
+	if Player.VerticalMovement > 0 || Player.Position.Y > 1 {
 		return
 	}
 	Player.VerticalMovement = Player.JumpingSpeed
@@ -120,7 +122,7 @@ func (Player *Player) Dash(direction rl.Vector3) {
 	if time.Since(Player.DashTimer).Milliseconds() < PLAYER_DASH_CD {
 		return
 	}
-	if Player.DashModifier > 0 || Player.Position.Y > 2 {
+	if Player.DashModifier > 0 || Player.Position.Y > 1 {
 		return
 	}
 	Player.DashModifier = Player.DashSpeed / Player.WalkingSpeed
@@ -171,7 +173,7 @@ func (Player *Player) GravityAndPositionLoop() {
 	if Player.VerticalMovement > 0 {
 		Player.MoveByVector(rl.NewVector3(0, Player.VerticalMovement*rl.GetFrameTime(), 0), 1)
 	}
-	if Player.Position.Y > 1 {
+	if Player.Position.Y > 0 {
 		Player.MoveByVector(rl.NewVector3(0, Player.VerticalMovement*rl.GetFrameTime(), 0), 1)
 		Player.FallingSpeed = Player.FallingSpeed + 10*rl.GetFrameTime()
 		Player.VerticalMovement -= Player.FallingSpeed
@@ -182,7 +184,9 @@ func (Player *Player) GravityAndPositionLoop() {
 		Player.MoveByVector(Player.DashDirection, Player.DashModifier)
 		Player.DashModifier -= Player.DashSpeed / Player.WalkingSpeed * rl.GetFrameTime() * 1.65
 
-		Player.ChargeCurrentLevel += float32(Player.ChargeSpeed) * 1.85 * rl.GetFrameTime()
+		if Player.ChargeCurrentLevel != 0 {
+			Player.ChargeCurrentLevel += float32(Player.ChargeSpeed) * 1.9 * rl.GetFrameTime()
+		}
 	} else {
 		if time.Since(Player.DashTimer).Milliseconds() < PLAYER_DASH_CD {
 			return

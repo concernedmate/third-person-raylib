@@ -17,6 +17,8 @@ func main() {
 		MainPlayer: entities.NewPlayer(),
 	}
 
+	World.Mobs = append(World.Mobs, entities.NewUndead(rl.NewVector3(10, 1, 0)))
+
 	rl.DisableCursor()
 	rl.SetTargetFPS(60)
 	for !rl.WindowShouldClose() {
@@ -35,7 +37,7 @@ func main() {
 		rl.BeginDrawing()
 
 		// render
-		World.RenderEntities()
+		World.LoopRenderEntities()
 
 		// HUD
 		hud.RenderHud(&World.MainPlayer)
