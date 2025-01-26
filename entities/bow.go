@@ -49,7 +49,7 @@ func NewBowProjectile(position rl.Vector3, target rl.Vector3) Projectile {
 		Position:         position,
 		Target:           targetNormalized,
 		VerticalMovement: float32(verticalMovement),
-		Speed:            100,
+		Speed:            50,
 		LifeTimer:        time.Now(),
 		LifeDurationMS:   2000,
 		MarkForDeletion:  false,
